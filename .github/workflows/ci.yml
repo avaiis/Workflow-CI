@@ -31,12 +31,12 @@ jobs:
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
-          # 1. Jalankan ke DagsHub (Kriteria Basic)
-          mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI"
-          
-          # 2. Paksa buat folder lokal tanpa ganggu DagsHub
-          # Arahkan tracking ke folder lokal 'mlruns'
-          MLFLOW_TRACKING_URI="file://$(pwd)/mlruns" mlflow run MLProject --env-manager=local --experiment-name "Local_Export"
+          cd MLProject
+          # Jalankan script langsung untuk menghindari konflik ID mlflow run
+          python modelling.py
+          # Pindahkan hasil log lokal (jika ada) ke folder utama agar terbaca step Upload
+          if [ -d "mlruns" ]; then mv mlruns ../; fi
+          cd ..
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
