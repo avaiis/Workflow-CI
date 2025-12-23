@@ -31,13 +31,20 @@ jobs:
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
+          # Jalankan mlflow run
           mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI"
+
+      - name: Debug Find mlruns (Cek Lokasi Asli)
+        run: |
+          echo "Mencari lokasi folder mlruns..."
+          find . -name "mlruns" -type d
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: ml-model-artifacts
-          path: MLProject/mlruns/
+          # Menggunakan path wildcard agar mencari di root maupun subfolder
+          path: "**/mlruns/"
           retention-days: 10
 
       - name: Log in to Docker Hub
@@ -48,9 +55,10 @@ jobs:
 
       - name: Build Docker Model (MLflow Way)
         run: |
-          # Perintah otomatis mencari folder model hasil training terbaru
-          MODEL_PATH=$(find mlruns -name "model" -type d | head -n 1)
+          # Cari folder model di mana saja (root atau MLProject)
+          MODEL_PATH=$(find . -name "model" -type d | grep "mlruns" | head -n 1)
           echo "Building image from local path: $MODEL_PATH"
+          if [ -z "$MODEL_PATH" ]; then echo "MODEL_PATH TIDAK KETEMU!"; exit 1; fi
           mlflow models build-docker -m "$MODEL_PATH" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
 
       - name: Push Docker Image
