@@ -31,18 +31,18 @@ jobs:
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
-          # Jalankan training dan simpan RUN_ID ke file sementara agar tidak hilang antar step
-          RUN_ID=$(mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI" | grep "ID '" | head -n 1 | awk -F"'" '{print $2}')
-          echo $RUN_ID > run_id.txt
+          # 1. Jalankan ke DagsHub (Kriteria Basic)
+          mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI"
           
-          # Download model dari DagsHub ke folder 'mlruns_export' agar Artifact tidak kosong
-          python -c "import mlflow; mlflow.artifacts.download_artifacts(run_id='$RUN_ID', artifact_path='model', dst_path='mlruns_export')"
+          # 2. Paksa buat folder lokal tanpa ganggu DagsHub
+          # Arahkan tracking ke folder lokal 'mlruns'
+          MLFLOW_TRACKING_URI="file://$(pwd)/mlruns" mlflow run MLProject --env-manager=local --experiment-name "Local_Export"
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: ml-model-artifacts
-          path: mlruns_export/
+          path: mlruns/
           retention-days: 10
 
       - name: Log in to Docker Hub
@@ -53,10 +53,10 @@ jobs:
 
       - name: Build Docker Model (MLflow Way)
         run: |
-          # Ambil kembali RUN_ID dari file
-          RUN_ID=$(cat run_id.txt)
-          # Build menggunakan folder hasil download tadi
-          mlflow models build-docker -m "mlruns_export/model" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
+          # Mencari path model di folder mlruns lokal yang baru dibuat
+          MODEL_PATH=$(find mlruns -name "model" -type d | head -n 1)
+          echo "Building from local path: $MODEL_PATH"
+          mlflow models build-docker -m "$MODEL_PATH" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
 
       - name: Push Docker Image
         run: |
