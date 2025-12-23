@@ -35,28 +35,24 @@ jobs:
           echo "MLFLOW_TRACKING_USERNAME=avaiis" >> $GITHUB_ENV
           echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
 
-      # Pastikan folder mlruns ada di MLProject
-      - name: Ensure MLProject/mlruns exists
+      # ✅ Buat folder lokal mlruns untuk artifact
+      - name: Ensure local mlruns folder exists
         run: mkdir -p MLProject/mlruns
-
-      # Pastikan folder root mlruns ada untuk upload artifacts
-      - name: Ensure root mlruns folder exists
-        run: mkdir -p mlruns
 
       - name: Run mlflow project
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
           cd MLProject
-          # Jalankan training, log ke Dagshub dan folder lokal MLProject/mlruns
+          # Jalankan training, log ke Dagshub
           python modelling.py
-          # Salin isi folder mlruns ke root mlruns agar bisa di-upload sebagai artifact
-          if [ -d "mlruns" ]; then cp -r mlruns/* ../mlruns/; fi
+          # Copy hasil training ke folder mlruns lokal agar bisa di-upload
+          cp -r mlruns ../mlruns || echo "No local mlruns created, skipping copy"
           cd ..
 
       - name: Get latest Mlflow run_id
         run: |
-          RUN_ID=$(find mlruns -maxdepth 2 -type d -name "*-*" | head -n 1 | xargs basename)
+          RUN_ID=$(find mlruns -maxdepth 2 -type d -name "*-*" | head -n 1 | xargs basename || echo "run_not_found")
           echo "LATEST_RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Found Run ID: $RUN_ID"
 
