@@ -31,14 +31,20 @@ jobs:
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
-          # 1. Jalankan training ke DagsHub (Sesuai Kriteria)mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI"
+          # 1. Jalankan training ke DagsHub (Poin Kriteria 3 Basic)
+          mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI"
           
-          # 2. Ambil modelnya ke lokal supaya bisa di-build Docker (Hanya Modelnya saja)
-          # Kita jalankan python langsung agar dia nulis folder mlruns di server GitHub
-          python MLProject/modelling.py
+          # 2. Masuk ke folder MLProject dulu baru jalankan python, 
+          # supaya script bisa menemukan folder 'diabetes_preprocessing'
+          cd MLProject
+          python modelling.py
+
+          # 3. Pindahkan folder mlruns yang baru terbentuk ke luar agar bisa di-upload
+          mv mlruns ../
+          cd ..
           
-          # Cek apakah folder sudah tercipta
-          ls -d mlruns/
+          # Cek folder untuk memastikan
+          ls -R mlruns/
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
