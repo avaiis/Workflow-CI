@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ml-model-artifacts
-          path: mlruns/
+          path: MLProject/mlruns/
           retention-days: 10
 
       - name: Log in to Docker Hub
