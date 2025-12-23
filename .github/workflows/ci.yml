@@ -8,13 +8,21 @@ jobs:
   train-and-build-docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up job (Checkout)
+      - name: Set up job
+        run: echo "Starting CI/CD Pipeline"
+
+      - name: Run actions/checkout@v3
         uses: actions/checkout@v3
 
       - name: Set up Python 3.12.7
         uses: actions/setup-python@v4
         with:
           python-version: '3.12.7'
+
+      - name: Check Env
+        run: |
+          python --version
+          pip --version
 
       - name: Install dependencies
         run: |
@@ -27,18 +35,30 @@ jobs:
           echo "MLFLOW_TRACKING_USERNAME=avaiis" >> $GITHUB_ENV
           echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
 
-      - name: Run MLflow project
+      # Pastikan folder mlruns ada di MLProject
+      - name: Ensure MLProject/mlruns exists
+        run: mkdir -p MLProject/mlruns
+
+      # Pastikan folder root mlruns ada untuk upload artifacts
+      - name: Ensure root mlruns folder exists
+        run: mkdir -p mlruns
+
+      - name: Run mlflow project
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
           cd MLProject
-          python modelling.py || echo "MLflow run failed, fallback to local mlruns"
-          if [ -d "mlruns" ]; then mv mlruns ../; fi
+          # Jalankan training, log ke Dagshub dan folder lokal MLProject/mlruns
+          python modelling.py
+          # Salin isi folder mlruns ke root mlruns agar bisa di-upload sebagai artifact
+          if [ -d "mlruns" ]; then cp -r mlruns/* ../mlruns/; fi
           cd ..
 
-      - name: Ensure mlruns exists
+      - name: Get latest Mlflow run_id
         run: |
-          mkdir -p mlruns
+          RUN_ID=$(find mlruns -maxdepth 2 -type d -name "*-*" | head -n 1 | xargs basename)
+          echo "LATEST_RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Found Run ID: $RUN_ID"
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
@@ -53,15 +73,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker Model (MLflow Way)
+      - name: Build Docker Model
         run: |
           MODEL_PATH=$(find mlruns -name "model" -type d | head -n 1)
-          echo "Building from local path: $MODEL_PATH"
+          echo "Building from: $MODEL_PATH"
           mlflow models build-docker -m "$MODEL_PATH" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
+
+      - name: Tag Docker Image
+        run: |
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest ${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest
 
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest
+
+      - name: Post Log in to Docker Hub
+        if: always()
+        run: docker logout
 
       - name: Complete job
         if: always()
