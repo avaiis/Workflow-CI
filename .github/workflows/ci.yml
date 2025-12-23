@@ -31,26 +31,18 @@ jobs:
         env:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
-          # 1. Jalankan training ke DagsHub (Poin Kriteria 3 Basic)
-          mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI"
+          # Jalankan training dan simpan RUN_ID ke file sementara agar tidak hilang antar step
+          RUN_ID=$(mlflow run MLProject --env-manager=local --experiment-name "Diabetes_Workflow_CI" | grep "ID '" | head -n 1 | awk -F"'" '{print $2}')
+          echo $RUN_ID > run_id.txt
           
-          # 2. Masuk ke folder MLProject dulu baru jalankan python, 
-          # supaya script bisa menemukan folder 'diabetes_preprocessing'
-          cd MLProject
-          python modelling.py
-
-          # 3. Pindahkan folder mlruns yang baru terbentuk ke luar agar bisa di-upload
-          mv mlruns ../
-          cd ..
-          
-          # Cek folder untuk memastikan
-          ls -R mlruns/
+          # Download model dari DagsHub ke folder 'mlruns_export' agar Artifact tidak kosong
+          python -c "import mlflow; mlflow.artifacts.download_artifacts(run_id='$RUN_ID', artifact_path='model', dst_path='mlruns_export')"
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: ml-model-artifacts
-          path: "**/mlruns/"
+          path: mlruns_export/
           retention-days: 10
 
       - name: Log in to Docker Hub
@@ -61,12 +53,10 @@ jobs:
 
       - name: Build Docker Model (MLflow Way)
         run: |
-          # Cari folder 'model' di mana pun dia berada di dalam mlruns
-          MODEL_PATH=$(find . -path "*/mlruns/*/artifacts/model" -type d | head -n 1)
-          if [ -z "$MODEL_PATH" ]; then MODEL_PATH=$(find . -name "model" -type d | grep "mlruns" | head -n 1); fi
-          
-          echo "Building image from local path: $MODEL_PATH"
-          mlflow models build-docker -m "$MODEL_PATH" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
+          # Ambil kembali RUN_ID dari file
+          RUN_ID=$(cat run_id.txt)
+          # Build menggunakan folder hasil download tadi
+          mlflow models build-docker -m "mlruns_export/model" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
 
       - name: Push Docker Image
         run: |
