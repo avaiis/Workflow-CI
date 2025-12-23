@@ -10,6 +10,7 @@ import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
 import os
+import shutil
 import joblib
 import warnings
 
@@ -61,14 +62,26 @@ def train_final_model():
         print("Training RandomForest dengan Best Parameters...")
         model.fit(X_train, y_train)
         
+        
+        # Simpan model secara eksplisit ke MLflow Tracking (DagsHub)
+        mlflow.sklearn.log_model(model, "model")
+
+        # SAVE LOCALLY (Untuk memudahkan Build Docker di GitHub Actions)
+        local_model_path = "online_model"
+        if os.path.exists(local_model_path):
+            shutil.rmtree(local_model_path)
+            
+        mlflow.sklearn.save_model(
+            sk_model=model,
+            path=local_model_path,
+            input_example=X_train.iloc[:5]
+        )
+        
         # Simpan model secara lokal untuk artefak CI
         os.makedirs("models", exist_ok=True)
         joblib.dump(model, "models/model_final.pkl")
         
-        # Log model secara eksplisit ke MLflow -> untuk docker
-        mlflow.sklearn.log_model(model, "model")
-        
-        print("Model training complete and logged to MLflow.")
+        print(f"Model training complete. Local model saved in: {local_model_path}")
         return model
 
 if __name__ == "__main__":
