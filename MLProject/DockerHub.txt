@@ -1,0 +1,2 @@
+Repository docker:
+https://hub.docker.com/r/kettyuuiop/diabetes-model
