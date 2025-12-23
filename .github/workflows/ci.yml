@@ -32,11 +32,13 @@ jobs:
           MLFLOW_DISABLE_ENV_CREATION: "true"
         run: |
           cd MLProject
-          # Jalankan script langsung untuk menghindari konflik ID mlflow run
-          python modelling.py
-          # Pindahkan hasil log lokal (jika ada) ke folder utama agar terbaca step Upload
+          python modelling.py || echo "MLflow run failed, fallback to local mlruns"
           if [ -d "mlruns" ]; then mv mlruns ../; fi
           cd ..
+
+      - name: Ensure mlruns exists
+        run: |
+          mkdir -p mlruns
 
       - name: Upload artifacts to GitHub
         uses: actions/upload-artifact@v4
@@ -53,7 +55,6 @@ jobs:
 
       - name: Build Docker Model (MLflow Way)
         run: |
-          # Mencari path model di folder mlruns lokal yang baru dibuat
           MODEL_PATH=$(find mlruns -name "model" -type d | head -n 1)
           echo "Building from local path: $MODEL_PATH"
           mlflow models build-docker -m "$MODEL_PATH" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow

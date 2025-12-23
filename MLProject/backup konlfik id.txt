@@ -1,0 +1,67 @@
+name: MLflow CI - Pima Indians Diabetes
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  train-and-build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up job (Checkout)
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.7'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mlflow==2.19.0 dagshub pandas numpy scikit-learn matplotlib seaborn joblib
+
+      - name: Set MLflow Tracking URI
+        run: |
+          echo "MLFLOW_TRACKING_URI=https://dagshub.com/avaiis/Eksperimen_SML_Fara-Katty.mlflow" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_USERNAME=avaiis" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Run MLflow project
+        env:
+          MLFLOW_DISABLE_ENV_CREATION: "true"
+        run: |
+          cd MLProject
+          # Jalankan script langsung untuk menghindari konflik ID mlflow run
+          python modelling.py
+          # Pindahkan hasil log lokal (jika ada) ke folder utama agar terbaca step Upload
+          if [ -d "mlruns" ]; then mv mlruns ../; fi
+          cd ..
+
+      - name: Upload artifacts to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-model-artifacts
+          path: mlruns/
+          retention-days: 10
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker Model (MLflow Way)
+        run: |
+          # Mencari path model di folder mlruns lokal yang baru dibuat
+          MODEL_PATH=$(find mlruns -name "model" -type d | head -n 1)
+          echo "Building from local path: $MODEL_PATH"
+          mlflow models build-docker -m "$MODEL_PATH" -n "${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest" --install-mlflow
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/diabetes-model:latest
+
+      - name: Complete job
+        if: always()
+        run: echo "CI job completed successfully"

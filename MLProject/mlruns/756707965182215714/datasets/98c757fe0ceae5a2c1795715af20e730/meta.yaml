@@ -1,0 +1,23 @@
+digest: e7fdf234
+name: dataset
+profile: '{"num_rows": 800, "num_elements": 16800}'
+schema: '{"mlflow_colspec": [{"type": "double", "name": "Pregnancies", "required":
+  true}, {"type": "double", "name": "Glucose", "required": true}, {"type": "double",
+  "name": "BloodPressure", "required": true}, {"type": "double", "name": "SkinThickness",
+  "required": true}, {"type": "double", "name": "Insulin", "required": true}, {"type":
+  "double", "name": "BMI", "required": true}, {"type": "double", "name": "DiabetesPedigreeFunction",
+  "required": true}, {"type": "double", "name": "Age", "required": true}, {"type":
+  "double", "name": "Glucose_BMI_Interaction", "required": true}, {"type": "double",
+  "name": "Age_Pregnancies", "required": true}, {"type": "double", "name": "BP_Age_Ratio",
+  "required": true}, {"type": "double", "name": "Log_Insulin", "required": true},
+  {"type": "double", "name": "Sqrt_SkinThickness", "required": true}, {"type": "double",
+  "name": "Age_Group_40-49", "required": true}, {"type": "double", "name": "Age_Group_50+",
+  "required": true}, {"type": "double", "name": "Age_Group_<30", "required": true},
+  {"type": "double", "name": "BMI_Category_Obese", "required": true}, {"type": "double",
+  "name": "BMI_Category_Overweight", "required": true}, {"type": "double", "name":
+  "BMI_Category_Underweight", "required": true}, {"type": "double", "name": "Glucose_Category_Normal",
+  "required": true}, {"type": "double", "name": "Glucose_Category_Prediabetes", "required":
+  true}]}'
+source: '{"tags": {"mlflow.user": "User", "mlflow.source.name": "modelling.py", "mlflow.source.type":
+  "LOCAL", "mlflow.source.git.commit": "3ea229477e6b75615b34aa2caa9b8912d8b1fa37"}}'
+source_type: code
