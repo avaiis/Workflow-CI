@@ -42,7 +42,7 @@ def train_final_model():
     # Aktifkan autolog agar metrik (accuracy, dll) tercatat otomatis
     mlflow.sklearn.autolog()
     
-    with mlflow.start_run(run_name="RandomForest_Final_BestParams"):
+    with mlflow.start_run(run_name="RandomForest_Final_BestParams", nested=True):
         print("\n=== TRAINING BEST MODEL VIA WORKFLOW CI ===")
         
         # Parameter dari hasil tuning (Kriteria 2)
@@ -81,7 +81,7 @@ def train_final_model():
         os.makedirs("models", exist_ok=True)
         joblib.dump(model, "models/model_final.pkl")
         
-        print(f"Model training complete. Local model saved in: {local_model_path}")
+        print("Model training complete and logged to MLflow.")
         return model
 
 if __name__ == "__main__":
