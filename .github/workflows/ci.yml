@@ -42,7 +42,6 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ env.MLFLOW_TRACKING_PASSWORD }}
         run: |
           cd MLProject
-          # Tambahkan flag --env-manager=local di sini
           mlflow run . --env-manager=local --experiment-name="Diabetes_Workflow_CI"
           cd ..
 

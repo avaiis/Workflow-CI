@@ -36,10 +36,7 @@ def train_final_model():
     
     # Aktifkan autologging
     mlflow.sklearn.autolog()
-
-    # LOGIKA PENTING: 
-    # Jika dijalankan via 'mlflow run', active_run() sudah ada isinya.
-    # Jika dijalankan manual 'python modelling.py', kita buat run baru.
+    
     active_run = mlflow.active_run()
     
     if active_run:
@@ -77,11 +74,14 @@ def execute_training(X_train, y_train):
     local_model_path = "online_model"
     if os.path.exists(local_model_path):
         shutil.rmtree(local_model_path)
-        
+    
+    # Ambil contoh data input (misal 5 baris pertama)
+    input_example = X_train.iloc[:5]
+    
     mlflow.sklearn.save_model(
         sk_model=model,
         path=local_model_path,
-        input_example=X_train.iloc[:5]
+        input_example=input_example
     )
     
     os.makedirs("models", exist_ok=True)
