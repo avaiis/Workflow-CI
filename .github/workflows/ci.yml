@@ -37,10 +37,13 @@ jobs:
 
       - name: Run mlflow project
         env:
-          MLFLOW_DISABLE_ENV_CREATION: "true" #Mengabaikan conda_env di file MLProject karena env sudah siap, tugasnya sm seperti kalau pakai mlflow run . --env-manager=local
+          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ env.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ env.MLFLOW_TRACKING_PASSWORD }}
         run: |
           cd MLProject
-          mlflow run . 
+          # Tambahkan flag --env-manager=local di sini
+          mlflow run . --env-manager=local
           cd ..
 
       - name: Get latest Mlflow run_id
