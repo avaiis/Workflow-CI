@@ -37,11 +37,10 @@ jobs:
 
       - name: Run mlflow project
         env:
-          MLFLOW_DISABLE_ENV_CREATION: "true"
+          MLFLOW_DISABLE_ENV_CREATION: "true" #Mengabaikan conda_env di file MLProject karena env sudah siap, tugasnya sm seperti kalau pakai mlflow run . --env-manager=local
         run: |
           cd MLProject
-          # Jalankan training (Ini akan log ke DagsHub DAN bikin folder online_model)
-          python modelling.py
+          mlflow run . 
           cd ..
 
       - name: Get latest Mlflow run_id
